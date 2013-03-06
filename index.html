@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>vUtil.js</title>
+	<script type="text/javascript" src="vUtil.js"></script>
+</head>
+<body>
+	<script type="text/javascript">
+		var Class = vUtil.Class;
+		var Cat = new Class;
+		Cat.include({
+			breath:function(){
+				alert('cat!');
+			}
+		})
+		var Tom = new Class;
+		var cat = new Cat;
+		Tom.inherite(cat);
+		Tom.include({
+			breath:function(){
+				alert('tom cat!');
+				this.super().breath();// 调用父类breath方法，作用域绑定为父类。alert('cat!');
+			}
+		})
+		
+		var tom = new Tom;
+		tom.breath();
+		tom.setConstant('type','i am a cat');
+		alert(tom.getConstant('type'));//i am a cat
+		alert(cat.getConstant('type'));//i am a cat
+	</script>
+</body>
+</html>
