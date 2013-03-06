@@ -7,6 +7,32 @@
 			return new F();
 		}
 	}
+	Date.prototype.format = function(format) //author: meizz 
+	{
+		var o = {
+			"M+": this.getMonth() + 1,
+			//month 
+			"d+": this.getDate(),
+			//day 
+			"h+": this.getHours(),
+			//hour 
+			"m+": this.getMinutes(),
+			//minute 
+			"s+": this.getSeconds(),
+			//second 
+			"q+": Math.floor((this.getMonth() + 3) / 3),
+			//quarter 
+			"S": this.getMilliseconds() //millisecond 
+		};
+		if (/(y+)/.test(format)) {
+			format = format.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+		}
+		for (var k in o) {
+			if (new RegExp("(" + k + ")").test(format)) format = format.replace(RegExp.$1, RegExp.$1.length == 1 ? o[k] : ("00" + o[k]).substr(("" + o[k]).length));
+		}
+
+		return format;
+	}
 	var getElementsByClassName = function(searchClass){
 			var els = document.getElementsByTagName('*'),
 				elsLen = els.length,
@@ -36,10 +62,25 @@
 				return klass.init.apply(this,arguments);
 			}
 			klass.fn = klass.prototype;
+			klass.parent = klass.fn.parent = klass;
 			klass.init = function(){
-				var instance =  Object.create(klass.prototype);
+				var instance = Object.create(klass.prototype);
 				instance.init.apply(instance,arguments);
+				if(!instance.inherited) instance._defaults =new Class;
+				instance._attributes = {};
+				if(typeof arguments[0]==='object'&&typeof arguments[0].defaults==='object'){
+					instance.defaults(arguments[0].defaults);
+				}
 				return instance;
+			}
+			klass.inherite = function(parent){
+				if(parent.proxyAll){
+					parent.proxyAll(parent,true);
+				}
+				this.fn.inherited = true;
+				this.fn.__proto__ = parent;
+				this.fn.parent = parent;
+				this.fn._defaults = parent._defaults;
 			}
 			klass.extend = function(obj){
 				for(var key in obj){
@@ -57,11 +98,56 @@
 					return (function(){
 						return fn.apply(self,arguments);
 					})
+				},
+				proxyAll: function(obj,flag){
+					var proxyObj;
+					if(flag === true){
+						proxyObj = this._self = this._self|| {};
+					}
+					else
+						proxyObj = this;
+				  	for(var key in obj){
+					  	if(typeof obj[key] ==='function'){
+					  		proxyObj[key]=this.proxy(obj[key]);
+					  	}
+					  	else{
+					  		proxyObj[key] = obj[key];
+					  	}
+				    }
+				},
+				super:function(){
+					if(this.parent._self) return this.parent._self;
+					return this.parent;
 				}
 			});
 			klass.fn.proxy = klass.proxy;
+			klass.fn.proxyAll = klass.proxyAll;
 			klass.fn.include = klass.include;
-			klass.fn.init=function(){};
+			klass.fn.super = klass.super;
+			klass.include({
+				init:function(){
+
+				},
+				inherited:false,
+				defaults:function(obj){
+					this.include(obj);
+					this._defaults.extend(obj);
+				},
+				set:function(attr,value){
+					this._attributes[attr] = value;
+					return this;
+				},
+				get:function(attr){
+					return this._attributes[attr];
+				},
+				setConstant:function(attr,value){
+					this._defaults[attr] = value;
+				},
+				getConstant:function(attr){
+					return this._defaults[attr];
+				}
+
+			});
 			return klass;
 		};
 	vUtil = new Class;
@@ -123,8 +209,8 @@
 		eq:function(i){
 			i=+i;
 			return i==-1?
-				this.slice(i):
-				this.slice(i,i+1);
+				core_slice.call(this,i):
+				core_slice.call(this,i,i+1);
 		},
 		each:function(objs,callback){
 			var name,
@@ -175,10 +261,9 @@
 			}
 		},
 		length: 0,
-		push: core_push,
-		sort: [].sort,
-		slice:core_slice,
-		plice: [].splice
+		 push: core_push,
+		 sort: [].sort,
+		splice: [].splice
 	});
 	//vUtil类方法
 	vUtil.extend({
@@ -319,7 +404,10 @@
 			var args = [];
 			var tempFN = function(){
 				args.push(arguments[0]);
-				if(args.length>=arr.length) fn(args);
+				if(args.length>=arr.length){
+					args=[];
+					fn(args);
+				} 
 			}
 			return tempFN;
 		}
