@@ -13,7 +13,7 @@
 			breath:function(){
 				alert('cat!');
 			}
-		})
+		 })
 		var Tom = new Class;
 		var cat = new Cat;
 		Tom.inherite(cat);
@@ -25,10 +25,28 @@
 		})
 		
 		var tom = new Tom;
-		tom.breath();
-		tom.setConstant('type','i am a cat');
-		alert(tom.getConstant('type'));//i am a cat
-		alert(cat.getConstant('type'));//i am a cat
+		cat.addEvents({
+			add:function(obj){
+				alert('add');
+				return 1;
+			}
+		})
+		cat.bindEvent('add',function(value){
+			alert(value);
+		})
+		cat.bindEvent('add',function(value){
+			alert(value+1);
+		})
+		cat.add();
+		// tom.breath();
+		// tom.setConstant('type','i am a cat');
+		// alert(tom.getConstant('type'));//i am a cat
+		// alert(cat.getConstant('type'));//i am a cat
+	</script>
+	<div class="div1" name="hi"></div>
+	<script type="text/javascript">
+		var div1 = vUtil('.div1').attr('name','hello');
+		alert(div1.attr('name'));
 	</script>
 </body>
 </html>
