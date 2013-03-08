@@ -7,46 +7,57 @@
 </head>
 <body>
 	<script type="text/javascript">
-		var Class = vUtil.Class;
-		var Cat = new Class;
-		Cat.include({
-			breath:function(){
-				alert('cat!');
-			}
-		 })
-		var Tom = new Class;
-		var cat = new Cat;
-		Tom.inherite(cat);
-		Tom.include({
-			breath:function(){
-				alert('tom cat!');
-				this.super().breath();// 调用父类breath方法，作用域绑定为父类。alert('cat!');
-			}
-		})
+		// var Class = vUtil.Class;
+		// var Cat = new Class;
+		// Cat.include({
+		// 	breath:function(){
+		// 		alert('cat!');
+		// 	}
+		//  })
+		// var Tom = new Class;
+		// var cat = new Cat;
+		// Tom.inherite(cat);
+		// Tom.include({
+		// 	breath:function(){
+		// 		alert('tom cat!');
+		// 		this.super().breath();// 调用父类breath方法，作用域绑定为父类。alert('cat!');
+		// 	}
+		// })
 		
-		var tom = new Tom;
-		cat.addEvents({
-			add:function(obj){
-				alert('add');
-				return 1;
-			}
-		})
-		cat.bindEvent('add',function(value){
-			alert(value);
-		})
-		cat.bindEvent('add',function(value){
-			alert(value+1);
-		})
-		cat.add();
+		// var tom = new Tom;
+		// cat.addEvents({
+		// 	add:function(obj){
+		// 		alert('add');
+		// 		return 1;
+		// 	}
+		// })
+		// cat.bindEvent('add',function(value){
+		// 	alert(value);
+		// })
+		// cat.bindEvent('add',function(value){
+		// 	alert(value+1);
+		// })
+		// cat.add();
 		// tom.breath();
 		// tom.setConstant('type','i am a cat');
 		// alert(tom.getConstant('type'));//i am a cat
 		// alert(cat.getConstant('type'));//i am a cat
 	</script>
-	<div class="div1" name="hi"></div>
+	<input type="checkbox" name="dads" id="check">
+	<div class='wrap'><div class="div1" name="hi" style="width:40px;height:40px;background:red;"></div></div>
 	<script type="text/javascript">
-		var div1 = vUtil('.div1').attr('name','hello');
-		alert(div1.attr('name'));
+
+		var div1 = vUtil('.div1');
+		var wrap = vUtil('.wrap');
+		div1.bind('click',function(e){
+
+			alert(1);
+		})
+		var check = vUtil('#check');
+
+		vUtil('#check').bind('click',function(e){
+			e.preventDefault();
+		})
 	</script>
 </body>
 </html>
