@@ -45,7 +45,7 @@
 									}
 					}
 					return classElements;
-	}
+	};
 	//函数库正文
 	var location = window.location,
 		navigator = window.navigator,
@@ -99,7 +99,11 @@
 						return fn.apply(self,arguments);
 					})
 				},
-				proxyAll: function(obj,flag){
+				getSuper:function(){
+					if(this.parent._self) return this.parent._self;
+					return this.parent;
+				},
+				proxyAll:function(obj,flag){
 					var proxyObj;
 					if(flag === true){
 						proxyObj = this._self = this._self|| {};
@@ -114,16 +118,12 @@
 								proxyObj[key] = obj[key];
 							}
 						}
-				},
-				super:function(){
-					if(this.parent._self) return this.parent._self;
-					return this.parent;
 				}
 			});
 			klass.fn.proxy = klass.proxy;
 			klass.fn.proxyAll = klass.proxyAll;
 			klass.fn.include = klass.include;
-			klass.fn.super = klass.super;
+			klass.fn.getSuper = klass.getSuper;
 			var _events = {},_callbackList={};
 			klass.include({
 				init:function(){
@@ -216,7 +216,7 @@
 			}
 			else if(typeof selector ==='string'){					
 				if(selector.charAt(0) =='#'){
-					doms = document.getElementById(selector.slice(1));
+					doms.push(document.getElementById(selector.slice(1)));
 				}
 				else if(selector.charAt(0) =="."){
 					doms = getElementsByClassName(selector.slice(1));
@@ -265,6 +265,78 @@
 				}
 			}
 
+		},
+		_creatEvent:function(e,rtObj){
+			var Event = new vUtil.Class;
+			Event.inherite(e);
+			var event = new Event;
+			event.include({
+				preventDefault:function(){
+					if(this.getSuper().preventDefault)
+						this.getSuper().preventDefault();
+					else{
+						this.returnValue = false;
+					}
+				},
+				stopPropagation:function(){
+					if(this.getSuper().stopPropagation)
+						this.getSuper().stopPropagation();
+					else{
+						this.getSuper().cancelBubble = true;
+					}
+				}
+			})
+			return event;
+		},
+		bind:function(type,fn){
+			var obj = {},eventList=[],len = this.length,i=0,j=0,self = this,
+			eventHandler = function(e){
+					e = e||window.event;
+					e = self._creatEvent(e);
+					fn.call(this,e);
+					return e.returnValue;
+			};
+			if(vUtil.isObject(type)){
+				obj = type;
+				for(var key in type){
+					eventList.push(key);
+				}
+			}
+			if(vUtil.isString(type)){
+				eventList = type.split(/\s+/);
+				for(i=0;i<eventList.length;i++){
+					obj[eventList[i]] = eventHandler;
+				}
+			}
+			for(i=0;i<len;i++){
+				for(j=0;j<eventList.length;j++){
+					if(document.addEventListener){
+						this[i].addEventListener(''+eventList[j],eventHandler,false);
+					}
+					else if(document.attachEvent){
+						this[i].attachEvent('on'+eventList[j],eventHandler);
+					}
+					else{
+						this[i]['on'+eventList[j]] = eventHandler;
+					}
+				}
+				
+			}
+		},
+		trigger:function(event){
+			var len = this.length;
+			if(document.dispatchEvent){
+				var evt = document.createEvent('HTMLEvents');
+				evt.initEvent(event,false,false);
+				for(var i=0;i<len;i++){
+					this[i].dispatchEvent(evt);
+				}
+			}
+			else if(document.fireEvent){
+				for(var i=0;i<len;i++){
+					this[i].fireEvent(event);
+				}
+			}
 		},
 		attr:function(attr,value){
 			if(attr&&typeof attr==='string'){
