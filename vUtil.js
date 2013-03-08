@@ -334,7 +334,7 @@
 			}
 			else if(document.fireEvent){
 				for(var i=0;i<len;i++){
-					this[i].fireEvent(event);
+					this[i].fireEvent('on'+event);
 				}
 			}
 		},
