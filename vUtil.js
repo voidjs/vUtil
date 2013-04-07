@@ -33,19 +33,7 @@
 
 		return format;
 	}
-	var getElementsByClassName = function(searchClass){
-			var els = document.getElementsByTagName('*'),
-				elsLen = els.length,
-				classElements = [],
-				pattern = new RegExp("(^|\\s)"+searchClass+"(\\s|$)");
-					for (i = 0, j = 0; i < elsLen; i++) {
-									if ( pattern.test(els[i].className) ) {
-													classElements[j] = els[i];
-													j++;
-									}
-					}
-					return classElements;
-	};
+	
 	//函数库正文
 	var location = window.location,
 		navigator = window.navigator,
@@ -56,7 +44,9 @@
 		core_indexOf = Array.prototype.indexOf,
 		core_toString = Object.prototype.toString,
 		core_hasOwn = Object.prototype.hasOwnProperty,
-		core_trim = String.prototype.trim;
+		core_trim = core_trim =Object.prototype.trim||function(str){
+			return str.replace(/^\s+/,'').replace(/\s+$/,'');
+		};
 	var	Class = function () {
 			var klass = function(){
 				return klass.init.apply(this,arguments);
@@ -95,6 +85,10 @@
 			klass.extend({
 				proxy:function(fn){
 					var self = this;
+					if(typeof arguments[0]!=='function'&&typeof arguments[1]==='function'){
+						self = arguments[0];
+						fn = arguments[1];
+					}
 					return (function(){
 						return fn.apply(self,arguments);
 					})
@@ -191,43 +185,21 @@
 	vUtil.include({
 		constructor:vUtil,
 		init:function(selector,context){
-			var doms = [];
 			if(!selector){
 				return this;
 			}
 			else if(selector.nodeType){
-				this.length=1;
-				this[0]=selector;
+				this.push(selector);
 				return this;
 			}
-			else if(document.querySelectorAll){
-				doms = document.querySelectorAll(selector);
-				for(var i=0;i<doms.length;i++){
-					this.push(doms[i]);
-				}
+			else if(typeof selector ==='string'){
+				vSizzle(selector,context,this);
 				return this;
 			}
-			else if(window.jQuery){
-				doms = jQuery(selector);
-				for(i=0;i<doms.length;i++){
-					this.push(doms[i]);
+			else if(typeof selector ==='function'){
+				window.onload = function(){
+					selector();
 				}
-				return this;
-			}
-			else if(typeof selector ==='string'){					
-				if(selector.charAt(0) =='#'){
-					doms.push(document.getElementById(selector.slice(1)));
-				}
-				else if(selector.charAt(0) =="."){
-					doms = getElementsByClassName(selector.slice(1));
-				}
-				else{
-					doms = document.getElementsByTagName(selector);
-				}
-				for(var i=0;i<doms.length;i++){
-					this.push(doms[i]);
-				}
-				return this;
 			}
 
 		},
@@ -251,19 +223,20 @@
 		each:function(objs,callback){
 			var name,
 				i=0,
-				len=objs.length;
-			if(objs){
+				len;
+			if(typeof objs ==='function'){
+				callback = objs;
+				objs = this;
+			}
+			len = objs.length;
+			if(len&&typeof callback==='function'){
 				for(;i<len;i++){
 					if(callback.call(objs[i],i,objs[i]) ===false)
 						break;
 				}
 			}
-			else{
-				for(;i<len;i++){
-					if(callback.call(objs[i],i,objs[i]) ===false)
-						break;
-				}
-			}
+			return this;
+			
 
 		},
 		_creatEvent:function(e,rtObj){
@@ -289,13 +262,8 @@
 			return event;
 		},
 		bind:function(type,fn){
-			var obj = {},eventList=[],len = this.length,i=0,j=0,self = this,
-			eventHandler = function(e){
-					e = e||window.event;
-					e = self._creatEvent(e);
-					fn.call(this,e);
-					return e.returnValue;
-			};
+			var obj = {},eventList=[],len = this.length,i=0,j=0,self = this;
+			
 			if(vUtil.isObject(type)){
 				obj = type;
 				for(var key in type){
@@ -308,19 +276,26 @@
 					obj[eventList[i]] = eventHandler;
 				}
 			}
+			var eventHandler = function(e){
+					e = e||window.event;
+					e = self._creatEvent(e);
+					fn.call(this,e);
+					return e.returnValue;
+			};
 			for(i=0;i<len;i++){
 				for(j=0;j<eventList.length;j++){
-					if(document.addEventListener){
-						this[i].addEventListener(''+eventList[j],eventHandler,false);
-					}
-					else if(document.attachEvent){
-						this[i].attachEvent('on'+eventList[j],eventHandler);
-					}
-					else{
-						this[i]['on'+eventList[j]] = eventHandler;
-					}
+					(function(context){
+						if(document.addEventListener){
+							context.addEventListener(''+eventList[j],eventHandler,false);
+						}
+						else if(document.attachEvent){
+							context.attachEvent('on'+eventList[j],self.proxy(context,eventHandler));
+						}
+						else{
+							context['on'+eventList[j]] = eventHandler;
+						}
+					})(this[i]);
 				}
-				
 			}
 		},
 		trigger:function(event){
@@ -389,10 +364,9 @@
 			return typeof(obj)==='undefined';
 		},
 		isArray:function(obj){
-			var flag;
-				flag = (core_toString.call(obj)=='[object Array]');
-				return flag;
+			return core_toString.call(obj)==='[object Array]';
 		},
+		trim:core_trim,
 		ajax:function(op){
 			var option = {
 				url:'',
@@ -525,7 +499,129 @@
 			return tempFN;
 		}
 	});
-		
+	(function(window){
+		var
+			chunker = /((?:\((?:\([^()]+\)|[^()]+)+\)|\[(?:\[[^[\]]*\]|['"][^'"]*['"]|[^[\]'"]+)+\]|\\.|[^ >+~,(\[\\]+)+|[>+~])(\s*,\s*)?/g,
+			blockExpr = /[ >+~]/,
+			extraExpr = /^.+(\[.+)|(:.+)/,
+			rquickExpr = /^(?:(#([\w-]+)|(\w+)|\.([\w-]+))[:\[]?.*\]?)$/,
+			push = Array.prototype.push,
+			support = {};
+		function checkSuport(){
+			support.qsa = (typeof document.querySelectorAll ==='function');
+			support.getElementsByClassName = function(searchClass,context){
+				context = context||document;
+				var els = context.getElementsByTagName('*'),
+					elsLen = els.length,
+					classElements = [],
+					pattern = new RegExp("(^|\\s)"+searchClass+"(\\s|$)");
+				for (i = 0, j = 0; i < elsLen; i++) {
+								if ( pattern.test(els[i].className) ) {
+												classElements[j] = els[i];
+												j++;
+								}
+				}
+				return classElements;
+			};
+		}
+		checkSuport();
+		window.vSizzle = function(selector,context,results){
+			context = context||document;
+			results = results||[];
+			var match,m,nodeType = context.nodeType,elem,rtElem,
+			ret = selector.match(chunker),nodeList = [],i,j,temList;
+			nodeList.push(context);
+			if(!support.qsa&&ret){
+				for(i =0;i<ret.length;i++){
+					if(!blockExpr.test(ret[i])){
+						temList = [];
+						for(j=0;j<nodeList.length;j++){
+							context = nodeList[j];
+							var re = select(ret[i],context);
+							push.apply(temList,re);						
+						}
+						nodeList = temList;
+					}
+				}
+			}
+			else{
+				try{
+					return push.apply(results,document.querySelectorAll(selector));
+				}
+				catch(err){
+
+				}
+				finally{
+					return results;
+				}
+			}
+			push.apply(results,nodeList);
+			return results;
+		};
+		var select = function(selector,context,results){
+			context = context||document;
+			results = results||[];
+			var match,m,nodeType = context.nodeType,elem,rtElem,temResult=[];
+			if((match = rquickExpr.exec(selector))){
+				if(m = match[2]){	
+					if(context.nodeType==9){
+						elem = context.getElementById(m);
+					}
+					else{
+						elem = context.ownerDocument.getElementById(m);
+					}
+					if(elem&&elem.parentNode){
+						temResult.push(elem);
+					}
+					
+				}
+				else if(m=match[3]){
+					push.apply(temResult,context.getElementsByTagName(m));
+				}
+				else if(m=match[4]){
+					if(context.getElementsByClassName){
+						rtElem = context.getElementsByClassName(m);
+					}
+					else{
+						rtElem = support.getElementsByClassName(m,context);
+					}
+					push.apply(temResult,rtElem);
+				}
+			}
+			push.apply(results,extraSelect(temResult,match[0]));
+			return results;
+
+		}
+		var extraSelect = function(doms,exsel,results){
+			results = results||[];
+			var match = exsel.match(extraExpr),temResult = [],
+			attrExpr = /\[(\w+)=(\w+)\]/,
+			fitterExpr = /:(\w+)/,
+			len = doms.length,dom;
+			if(match){
+				if(match[1]){
+					var  a = match[1].match(attrExpr);
+					var key = a[1];
+					var value = a[2];
+					for(var i =0;i<len;i++){
+						dom = doms[i];
+						if(dom&&dom.getAttribute(key)===value){
+							temResult.push(dom);
+						}
+					}
+				}
+				if(match[2]){
+					var  f = match[2].match(fitterExpr);
+				}
+			}
+			else{
+				temResult = doms;
+			}
+			push.apply(results,temResult);
+			return results;
+		}
+	})(window);
+	
 	vUtil.fn.init.prototype = vUtil.fn;
 	exports.vUtil  = vUtil;
 })(window);
