@@ -46,10 +46,9 @@
 		// tom.setConstant('type','i am a cat');
 		// console.log(tom.getConstant('type'));//i am a cat
 		// console.log(cat.getConstant('type'));//i am a cat
-		
 	</script>
 	<input type="checkbox" name="dads" id="check">
-	<div id="con">s
+	<div id="con">
 		<div id="c"></div>
 	</div>
 
@@ -57,10 +56,11 @@
 	<div class='wrap'><div class="div1"  style="width:40px;height:40px;background:red;"></div></div>
 	<script type="text/javascript">
 		var c = $(".wrap .div1[name=hi]");
-		c.bind('click',function(){
-			alert(this.nodeName);
+		c.bind('click',function(e){
+			console.log(e);
 		});
-		c.trigger('click')
+		c.trigger('click');
+		$('body').css({'background-color':'#000'}).attr('dd','dada');
 	</script>
 </body>
 </html>
