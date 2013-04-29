@@ -44,8 +44,16 @@
 		core_indexOf = Array.prototype.indexOf,
 		core_toString = Object.prototype.toString,
 		core_hasOwn = Object.prototype.hasOwnProperty,
-		core_trim = core_trim =Object.prototype.trim||function(str){
-			return str.replace(/^\s+/,'').replace(/\s+$/,'');
+		core_trim = core_trim =Object.prototype.trim||function(){
+			return this.replace(/^\s+/,'').replace(/\s+$/,'');
+		};
+	var 
+		cssExpr = /-(\w)/,
+		fitterCssStr = function(str){
+			str = core_trim.call(str);
+			return str.replace(cssExpr,function(){
+				return arguments[1].toUpperCase();
+			});
 		};
 	var	Class = function () {
 			var klass = function(){
@@ -118,6 +126,8 @@
 			klass.fn.proxyAll = klass.proxyAll;
 			klass.fn.include = klass.include;
 			klass.fn.getSuper = klass.getSuper;
+			klass.fn.extend = klass.extend;
+			klass.fn.inherite = klass.inherite;
 			var _events = {},_callbackList={};
 			klass.include({
 				init:function(){
@@ -278,7 +288,7 @@
 			}
 			var eventHandler = function(e){
 					e = e||window.event;
-					e = self._creatEvent(e);
+					e = Event(e);
 					fn.call(this,e);
 					return e.returnValue;
 			};
@@ -312,6 +322,7 @@
 					this[i].fireEvent('on'+event);
 				}
 			}
+			return this;
 		},
 		attr:function(attr,value){
 			if(attr&&typeof attr==='string'){
@@ -342,12 +353,87 @@
 						return attrs[0];
 				}
 			}
+			return this;
+		},
+		css:function(css,value){
+			var cur,style;
+			if(typeof css==='string'){
+				css = fitterCssStr(css);
+				if(!value){
+					style = this[0].currentStyle||window.getComputedStyle(this[0],false);
+					if(style){
+						return style[css];
+					}
+				}
+				else if(typeof value==='string'){
+					for(var i=0;i<this.length;i++){
+						this[i].style[css] = value;
+					}
+				}
+			}
+			else if(typeof css ==='object'){
+				
+				for(var i=0;i<this.length;i++){
+					cur = this[i];
+					vUtil.merge(cur.style,css);
+					
+				}
+			}
+			return this;
 		},
 		length: 0,
 		 push: core_push,
 		 sort: [].sort,
-		splice: [].splice
+		splice: [].splicez
 	});
+	var _creatEvent = function(){
+		var Event = new vUtil.Class;
+		Event.include({
+			init:function(e){
+				this.inherite(e);
+				var pageX,pageY,offsetX,offsetY;
+				if(e.pageX||e.pageY){
+					pageX = e.pageX;
+					pageY = e.pageY;
+				}
+				else if(e.clientX||e.clientY){
+					pageX = e.clientX+document.documentElement.scrollLeft+document.body.scrollLeft;
+					pageY = e.clientY+document.documentElement.scrollTop+document.body.scrollTop;
+				}
+				if(e.offsetX||e.offsetY){
+					offsetX = e.offsetX;
+					offsetY = e.offsetY;
+				}
+				else if(e.layerX||e.layerY){
+					offsetX = e.layerX;
+					offsetY = e.layerY;
+				}
+				vUtil.merge(this,{
+					oEvent:e,
+					pageX:pageX,
+					pageY:pageY,
+					offsetX:offsetX,
+					offsetY:offsetY
+				});
+			},
+			preventDefault:function(){
+				if(this.getSuper().preventDefault)
+					this.getSuper().preventDefault();
+				else{
+					this.returnValue = false;
+				}
+			},
+			stopPropagation:function(){
+				if(this.getSuper().stopPropagation)
+					this.getSuper().stopPropagation();
+				else{
+					this.getSuper().cancelBubble = true;
+				}
+			}
+		})
+		return Event;
+	};
+	
 	//vUtil类方法
 	vUtil.extend({
 		Class:Class,
@@ -473,9 +559,7 @@
 		merge:function(obj1,obj2){
 			var key;
 			for(key in obj2){
-				if(typeof obj1[key]!=='undefined'){
-					obj1[key] = obj2[key];
-				}
+				obj1[key] = obj2[key];
 			}
 		},
 		fitter:function(obj){
@@ -621,7 +705,7 @@
 			return results;
 		}
 	})(window);
-	
+	var Event = _creatEvent();
 	vUtil.fn.init.prototype = vUtil.fn;
 	exports.vUtil  = vUtil;
 })(window);
